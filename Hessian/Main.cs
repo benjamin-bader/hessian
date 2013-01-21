@@ -17,7 +17,7 @@ namespace Hessian
 
             var ds = new Deserializer(ms);
 
-            var actual = ds.ReadObject();
+            var actual = ds.ReadValue();
             Console.WriteLine(actual);
         }
     }

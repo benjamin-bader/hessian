@@ -15,19 +15,19 @@ namespace Hessian.Tests
         // A short string is a string of 0-31 characters, encoded as (length) utf-8
 
         [Test]
-        public void ReadShortString_ReadsEmptyString()
+        public void ReadString_ReadsCompactEmptyString()
         {
             var data = new byte[] { 0x00 };
             var stream = new MemoryStream(data);
             var ds = new Deserializer(stream);
 
-            var str = ds.ReadShortString();
+            var str = ds.ReadString();
 
             Assert.AreEqual(string.Empty, str);
         }
 
         [Test]
-        public void ReadShortString_ReadsLongestShortString()
+        public void ReadString_ReadsLongestCompactString()
         {
             // Should be 31 characters...?
             var ramayana = "गोस्वामी तुलसीदासजी कृत महाकाव.";
@@ -38,7 +38,7 @@ namespace Hessian.Tests
             stream.Position = 0;
             var ds = new Deserializer(stream);
 
-            var str = ds.ReadShortString();
+            var str = ds.ReadString();
 
             Assert.AreEqual(ramayana, str);
         }
