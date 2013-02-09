@@ -23,6 +23,7 @@ namespace Hessian
             objectRefs = new List<object>();
         }
 
+        #region ReadValue
 
         // XXX Moving to Read<Type> methods, and not speciaized Read<Form><Type>.
         public object ReadValue ()
@@ -51,7 +52,7 @@ namespace Hessian
                     return ReadMediumBinary();
 
                 case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: case 0x3E: case 0x3F:
-                    return ReadThreeByteLong();
+                    return ReadLongThreeBytes();
 
                 case 0x40:
                     return Reserved();
@@ -63,7 +64,7 @@ namespace Hessian
                     return ReadClassDefinition();
 
                 case 0x44:
-                    return ReadDouble();
+                    return ReadFullDouble();
 
                 case 0x45:
                     return Reserved();
@@ -86,19 +87,180 @@ namespace Hessian
                 case 0x4B:
                     return ReadDateInMinutes();
 
+                case 0x4C:
+                    return ReadLongFull();
+
+                case 0x4D:
+                    return ReadTypedMap();
+
+                case 0x4E:
+                    return ReadNull();
+
+                case 0x4F:
+                    return ReadObject();
+
+                case 0x50:
+                    return Reserved();
+
+                case 0x51:
+                    return ReadRef();
+
+                case 0x52: case 0x53:
+                    return ReadChunkedString();
+
+                case 0x54:
+                    return ReadBoolean();
+
+                case 0x55:
+                    return ReadVarList();
+
+                case 0x56:
+                    return ReadFixList();
+
+                case 0x57:
+                    return ReadVarListUntyped();
+
+                case 0x58:
+                    return ReadFixListUntyped();
+
+                case 0x59:
+                    return ReadLongFourBytes();
+
+                case 0x5A:
+                    // List terminator - solitary list terminators are most definitely not legit.
+                    throw new UnexpectedTagException(0x5A, "value");
+
                 case 0x5B: case 0x5C:
                     return ReadDoubleOneByte();
 
+                case 0x5D:
+                    return ReadDoubleOneByte();
+
+                case 0x5E:
+                    return ReadDoubleTwoBytes();
+
+                case 0x5F:
+                    return ReadDoubleFourBytes();
+
+                case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67:
+                case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
+                    return ReadObjectDirect();
+
+                case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
+                    return ReadFixListWithLength();
+
+                case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F:
+                    return ReadFixListWithLengthUntyped();
+
+                case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85: case 0x86: case 0x87:
+                case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
+                case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97:
+                case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D: case 0x9E: case 0x9F:
+                case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5: case 0xA6: case 0xA7:
+                case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD: case 0xAE: case 0xAF:
+                case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7:
+                case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD: case 0xBE: case 0xBF:
+                    return ReadIntegerSingleByte();
+
+                case 0xC0: case 0xC1: case 0xC2: case 0xC3: case 0xC4: case 0xC5: case 0xC6: case 0xC7:
+                case 0xC8: case 0xC9: case 0xCA: case 0xCB: case 0xCC: case 0xCD: case 0xCE: case 0xCF:
+                    return ReadIntegerTwoBytes();
+
+                case 0xD0: case 0xD1: case 0xD2: case 0xD3: case 0xD4: case 0xD5: case 0xD6: case 0xD7:
+                    return ReadIntegerThreeBytes();
+
+                case 0xD8: case 0xD9: case 0xDA: case 0xDB: case 0xDC: case 0xDD: case 0xDE: case 0xDF:
+                case 0xE0: case 0xE1: case 0xE2: case 0xE3: case 0xE4: case 0xE5: case 0xE6: case 0xE7:
+                case 0xE8: case 0xE9: case 0xEA: case 0xEB: case 0xEC: case 0xED: case 0xEE: case 0xEF:
+                    return ReadLongOneByte();
+
+                case 0xF0: case 0xF1: case 0xF2: case 0xF3: case 0xF4: case 0xF5: case 0xF6: case 0xF7:
+                case 0xF8: case 0xF9: case 0xFA: case 0xFB: case 0xFC: case 0xFD: case 0xFE: case 0xFF:
+                    return ReadLongTwoBytes();
             }
 
             throw new NotImplementedException();
         }
+
+        #endregion
+
+        #region List
+
+        private object ReadFixListWithLengthUntyped()
+        {
+            throw new NotImplementedException();
+        }
+
+        private List<object> ReadFixListWithLength()
+        {
+            var tag = reader.ReadByte();
+            var length = tag - 0x70;
+            var list = new List<object>(length);
+
+            for (var i = 0; i < length; ++i) {
+                list.Add(ReadValue());
+            }
+            objectRefs.Add(list);
+            return list;
+        }
+
+        private object ReadObjectDirect()
+        {
+            throw new NotImplementedException();
+        }
+
+        private List<object> ReadFixListUntyped()
+        {
+            reader.ReadByte();
+            var length = ReadInteger();
+            var list = new List<object>(length);
+            for (var i = 0; i < length; ++i) {
+                list.Add(ReadValue());
+            }
+            objectRefs.Add(list);
+            return list;
+        }
+
+        private List<object> ReadVarListUntyped()
+        {
+            reader.ReadByte();
+            var list = new List<object>();
+
+            while (true) {
+                var tag = reader.Peek();
+                if (!tag.HasValue) {
+                    throw new EndOfStreamException();
+                }
+                if (tag == 'Z') {
+                    reader.ReadByte();
+                    break;
+                }
+                list.Add(ReadValue());
+            }
+
+            objectRefs.Add(list);
+            return list;
+        }
+
+        private IList<object> ReadFixList()
+        {
+            throw new NotImplementedException();
+        }
+
+        private IList<object> ReadVarList()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
 
         public object Reserved ()
         {
             reader.ReadByte();
             return ReadValue();
         }
+
+        #region String
 
         public string ReadString()
         {
@@ -120,7 +282,7 @@ namespace Hessian
                 return ReadChunkedString();
             }
 
-            throw new InvalidDataException();
+            throw new UnexpectedTagException(tag.Value, "string");
         }
 
         private string ReadShortString ()
@@ -163,23 +325,9 @@ namespace Hessian
             return sb.ToString();
         }
 
-        private byte[] ReadShortBinary ()
-        {
-            var length = reader.ReadByte();
-            var data = new byte[length];
-            reader.Read(data, length);
-            return data;
-        }
+        #endregion
 
-        private byte[] ReadMediumBinary()
-        {
-            var b0 = reader.ReadByte();
-            var b1 = reader.ReadByte();
-            var length = ((b0 - 0x34) << 8) | b1;
-            var data = new byte[length];
-            reader.Read(data, length);
-            return data;
-        }
+        #region Binary
 
         public byte[] ReadBinary()
         {
@@ -200,16 +348,25 @@ namespace Hessian
                 return ReadChunkedBinary();
             }
 
-            throw new InvalidDataException(string.Format("{0:X} is not a valid binary tag.", tag.Value));
+            throw new UnexpectedTagException(tag.Value, "binary");
         }
 
-        public long ReadThreeByteLong()
+        private byte[] ReadShortBinary ()
+        {
+            var length = reader.ReadByte();
+            var data = new byte[length];
+            reader.Read(data, length);
+            return data;
+        }
+
+        private byte[] ReadMediumBinary()
         {
             var b0 = reader.ReadByte();
             var b1 = reader.ReadByte();
-            var b2 = reader.ReadByte();
-
-            return ((b0 - 0x3CL) << 16) | (b1 << 8) | b2;
+            var length = ((b0 - 0x34) << 8) | b1;
+            var data = new byte[length];
+            reader.Read(data, length);
+            return data;
         }
 
         public byte[] ReadChunkedBinary()
@@ -228,6 +385,10 @@ namespace Hessian
 
             return data.ToArray();
         }
+
+        #endregion Binary
+
+        #region Integer
 
         public int ReadInteger()
         {
@@ -262,8 +423,8 @@ namespace Hessian
 
         private int ReadIntegerFull()
         {
-            byte tag = reader.ReadByte(),
-                 b0 = reader.ReadByte(),
+            reader.ReadByte(); // Discard tag.
+            byte b0 = reader.ReadByte(),
                  b1 = reader.ReadByte(),
                  b2 = reader.ReadByte(),
                  b3 = reader.ReadByte();
@@ -293,9 +454,16 @@ namespace Hessian
             return ((b0 - 0xD4) << 16) | (b1 << 8) | b2;
         }
 
+        #endregion Integer
+
+        #region Class Definition
+
         public ClassDef ReadClassDefinition()
         {
             var tag = reader.ReadByte();
+            if (tag != 'C') {
+                throw new UnexpectedTagException(tag, "classdef");
+            }
             var name = ReadString();
             var classRef = classDefs.Count;
             var fieldCount = ReadInteger();
@@ -310,6 +478,10 @@ namespace Hessian
 
             return classDef;
         }
+
+        #endregion Class Definition
+
+        #region Double
 
         public double ReadDouble()
         {
@@ -339,13 +511,16 @@ namespace Hessian
                 return ReadDoubleFourBytes();
             }
 
-            return double.NaN;
+            throw new UnexpectedTagException(tag.Value, "double");
         }
 
         private double ReadFullDouble()
         {
             var data = new byte[9]; // 9 bytes: tag + IEEE 8-byte double
             reader.Read(data, data.Length);
+            if (BitConverter.IsLittleEndian) {
+                Array.Reverse(data, 1, 8);  // .NET is little-endian, network order is big-endian
+            }
             return BitConverter.ToDouble(data, 1);
         }
 
@@ -375,10 +550,15 @@ namespace Hessian
         private double ReadDoubleFourBytes()
         {
             // Doubles that can be represented as singles are thusly encoded.
-            var data = new byte[4];
+            var data = new byte[5];
             reader.Read(data, data.Length);
+            if (BitConverter.IsLittleEndian) {
+                Array.Reverse(data, 1, 4); // .NET is little-endian, network order is big-endian.
+            }
             return BitConverter.ToSingle(data, 0);
         }
+
+        #endregion Double
 
         public bool ReadBoolean()
         {
@@ -389,13 +569,15 @@ namespace Hessian
                 case 0x54: return true;
             }
 
-            throw new InvalidDataException();
+            throw new UnexpectedTagException(tag, "boolean");
         }
 
-        public Hashtable ReadMap()
+        public Dictionary<object, object> ReadMap()
         {
-            return null;
+            throw new NotImplementedException();
         }
+
+        #region Date
 
         public DateTime ReadDate()
         {
@@ -413,14 +595,14 @@ namespace Hessian
                 return ReadDateInMinutes();
             }
 
-            throw new InvalidDataException();
+            throw new UnexpectedTagException(tag.Value, "date");
         }
 
         private DateTime ReadDateInMillis()
         {
             var data = new byte[9];
             reader.Read(data, data.Length);
-            var millis = BitConverter.ToInt64(data, 1);
+            var millis = LongFromBytes(data, 1);
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(millis);
         }
 
@@ -428,8 +610,129 @@ namespace Hessian
         {
             var data = new byte[5];
             reader.Read(data, data.Length);
-            var minutes = BitConverter.ToInt32(data, 1);
+            var minutes = IntFromBytes(data, 1);
             return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(minutes);
+        }
+
+        #endregion Date
+
+        #region Long
+
+        public long ReadLong()
+        {
+            var tag = reader.Peek();
+
+            if (!tag.HasValue) {
+                throw new EndOfStreamException();
+            }
+
+            if (tag == 0x4C) {
+                return ReadLongFull();
+            }
+
+            if (tag >= 0xD8 && tag <= 0xEF) {
+                return ReadLongOneByte();
+            }
+
+            if (tag >= 0xF0 && tag <= 0xFF) {
+                return ReadLongTwoBytes();
+            }
+
+            if (tag == 0x59) {
+                return ReadLongFourBytes();
+            }
+
+            throw new UnexpectedTagException(tag.Value, "long");
+        }
+
+        private long ReadLongFull()
+        {
+            var data = new byte[9];
+            reader.Read(data, data.Length);
+            return LongFromBytes(data, 1);
+        }
+
+        private long ReadLongOneByte()
+        {
+            return reader.ReadByte() - 0xE0;
+        }
+
+        private long ReadLongTwoBytes()
+        {
+            byte b0 = reader.ReadByte(),
+                 b1 = reader.ReadByte();
+
+            return ((b0 - 0xF8) << 8) | b1;
+        }
+
+        private long ReadLongThreeBytes()
+        {
+            byte b0 = reader.ReadByte(),
+                 b1 = reader.ReadByte(),
+                 b2 = reader.ReadByte();
+
+            return ((b0 - 0x3C) << 16) | (b1 << 8) | b2;
+        }
+
+        private long ReadLongFourBytes()
+        {
+            var data = new byte[5];
+            reader.Read(data, data.Length);
+            return IntFromBytes(data, 1);
+        }
+
+        #endregion Long
+
+        public Dictionary<object, object> ReadTypedMap()
+        {
+            throw new NotImplementedException();
+        }
+
+        public object ReadNull()
+        {
+            reader.ReadByte();
+            return null;
+        }
+
+        public object ReadObject()
+        {
+            throw new NotImplementedException();
+        }
+
+        public object ReadRef()
+        {
+            var tag = reader.Peek();
+            if (!tag.HasValue) {
+                throw new EndOfStreamException();
+            }
+            if (tag != 0x51) {
+                throw new UnexpectedTagException(tag.Value, "ref");
+            }
+            var refid = ReadInteger();
+            if (refid < 0 || refid >= objectRefs.Count) {
+                throw new HessianException("Invalid ref ID: " + refid);
+            }
+            return objectRefs[refid];
+        }
+
+        private static int IntFromBytes(byte[] buffer, int offset)
+        {
+            return (buffer[offset + 0] << 0x18)
+                 | (buffer[offset + 1] << 0x10)
+                 | (buffer[offset + 2] << 0x08)
+                 | (buffer[offset + 3] << 0x00);
+        }
+
+        private static long LongFromBytes(byte[] buffer, int offset)
+        {
+            return (buffer[offset + 0] << 0x38)
+                 | (buffer[offset + 1] << 0x30)
+                 | (buffer[offset + 2] << 0x28)
+                 | (buffer[offset + 3] << 0x20)
+                 | (buffer[offset + 4] << 0x18)
+                 | (buffer[offset + 5] << 0x10)
+                 | (buffer[offset + 6] << 0x08)
+                 | (buffer[offset + 7] << 0x00);
         }
     }
 }

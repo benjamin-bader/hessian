@@ -71,5 +71,24 @@ namespace Hessian.Tests
             Assert.AreEqual(2, def.Fields.Length);
             CollectionAssert.AreEqual(new[] {"foo", "bar"}, def.Fields);
         }
+
+        [Test, ExpectedException(typeof(UnexpectedTagException))]
+        public void ReadClassDef_WithoutTag_Throws()
+        {
+            var name = new byte[] { 0x06, (byte)'s', (byte)'a', (byte)'m', (byte)'p', (byte)'l', (byte)'e' };
+            var fields = new[]
+            {
+                new byte[] { 0x03, (byte)'f', (byte)'o', (byte)'o' },
+                new byte[] { 0x03, (byte)'b', (byte)'a', (byte)'r' }
+            };
+
+            var stream = new MemoryStream();
+            stream.Write(name, 0, name.Length);
+            stream.WriteByte(0x92); // two fields
+            stream.Write(fields[0], 0, fields[0].Length);
+            stream.Write(fields[1], 0, fields[1].Length);
+            stream.Position = 0;
+            new Deserializer(stream).ReadClassDefinition();
+        }
     }
 }

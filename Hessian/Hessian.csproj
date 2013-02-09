@@ -41,11 +41,14 @@
   <ItemGroup>
     <Compile Include="ClassDef.cs" />
     <Compile Include="Deserializer.cs" />
+    <Compile Include="HessianException.cs" />
+    <Compile Include="ListTypeResolver.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="PeekStream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StringBuilderExtensions.cs" />
     <Compile Include="Tag.cs" />
+    <Compile Include="UnexpectedTagException.cs" />
     <Compile Include="ValueReader.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

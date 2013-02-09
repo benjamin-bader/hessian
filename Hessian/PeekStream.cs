@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace Hessian
@@ -7,7 +6,7 @@ namespace Hessian
     public class PeekStream : Stream
     {
         private Stream inner;
-        private Stack<byte> stack;
+        private byte? peek;
 
         public PeekStream(Stream inner)
         {
@@ -16,7 +15,7 @@ namespace Hessian
             }
 
             this.inner = inner;
-            this.stack = new Stack<byte>();
+            this.peek = null;
         }
 
         public override bool CanRead {
@@ -45,7 +44,7 @@ namespace Hessian
 
         public override long Position {
             get {
-                return inner.Position - stack.Count;
+                return inner.Position - (peek.HasValue ? 1 : 0);
             }
             set {
                 throw new NotSupportedException("Seeking not supported.");
@@ -54,24 +53,25 @@ namespace Hessian
 
         public byte? Peek ()
         {
-            if (stack.Count > 0) {
-                return stack.Peek ();
+            if (!peek.HasValue) {
+                var b = inner.ReadByte();
+
+                if (b == -1) {
+                    return null;
+                }
+
+                peek = (byte) b;
             }
 
-            var b = inner.ReadByte ();
-
-            if (b == -1) {
-                return null;
-            }
-
-            stack.Push ((byte)b);
-            return (byte)b;
+            return peek;
         }
 
         public override int ReadByte ()
         {
-            if (stack.Count > 0) {
-                return stack.Pop ();
+            if (peek.HasValue) {
+                var val = peek.Value;
+                peek = null;
+                return val;
             }
 
             return inner.ReadByte();
@@ -101,11 +101,13 @@ namespace Hessian
 
             var bytesToRead = count;
 
-            while (bytesToRead > 0 && stack.Count > 0) {
-                buffer [offset++] = stack.Pop ();
+            if (peek.HasValue) {
+                buffer[offset++] = peek.Value;
+                peek = null;
+                --bytesToRead;
             }
 
-            var bytesRead = 0;
+            int bytesRead;
             while (bytesToRead > 0 && (bytesRead = inner.Read (buffer, offset, bytesToRead)) != 0) {
                 offset += bytesRead;
                 bytesToRead -= bytesRead;
@@ -140,8 +142,6 @@ namespace Hessian
                 inner.Dispose ();
                 inner = null;
             }
-
-            stack = null;
 
             base.Dispose (disposing);
         }
