@@ -1,16 +1,19 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using Hessian.Collections;
 
 namespace Hessian
 {
     public class Deserializer
     {
         private readonly ValueReader reader;
-        private readonly List<ClassDef> classDefs;
-        private readonly List<object> objectRefs;
+        private readonly IRefMap<ClassDef> classDefs;
+        private readonly IRefMap<object> objectRefs;
+        private readonly IRefMap<string> typeNameRefs; 
+        private readonly Lazy<ListTypeResolver> listTypeResolver = new Lazy<ListTypeResolver>();
+        private readonly Lazy<DictionaryTypeResolver> dictTypeResolver = new Lazy<DictionaryTypeResolver>(); 
 
         public Deserializer (Stream stream)
         {
@@ -19,13 +22,13 @@ namespace Hessian
             }
 
             reader = new ValueReader(stream);
-            classDefs = new List<ClassDef>();
-            objectRefs = new List<object>();
+            classDefs = new ListRefMap<ClassDef>();
+            objectRefs = new ListRefMap<object>();
+            typeNameRefs = new ListRefMap<string>();
         }
 
         #region ReadValue
 
-        // XXX Moving to Read<Type> methods, and not speciaized Read<Form><Type>.
         public object ReadValue ()
         {
             var tag = reader.Peek ();
@@ -76,7 +79,7 @@ namespace Hessian
                     return Reserved();
 
                 case 0x48:
-                    return ReadMap();
+                    return ReadUntypedMap();
 
                 case 0x49:
                     return ReadInteger();
@@ -147,10 +150,10 @@ namespace Hessian
                     return ReadObjectDirect();
 
                 case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
-                    return ReadFixListWithLength();
+                    return ReadCompactFixList();
 
                 case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F:
-                    return ReadFixListWithLengthUntyped();
+                    return ReadCompactFixListUntyped();
 
                 case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85: case 0x86: case 0x87:
                 case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
@@ -179,53 +182,117 @@ namespace Hessian
                     return ReadLongTwoBytes();
             }
 
-            throw new NotImplementedException();
+
+            throw new Exception("WTF: byte value " + tag.Value + " not accounted for!");
         }
 
         #endregion
 
+        private string ReadTypeName()
+        {
+            var tag = reader.Peek();
+
+            if (!tag.HasValue) {
+                throw new EndOfStreamException();
+            }
+
+            if ((tag >= 0x00 && tag < 0x20)
+                || (tag >= 0x30 && tag < 0x34)
+                || tag == 0x52
+                || tag == 0x53) {
+                var typeName = ReadString();
+                typeNameRefs.Add(typeName);
+                return typeName;
+            }
+
+            return typeNameRefs.Get(ReadInteger());
+        }
+
         #region List
 
-        private object ReadFixListWithLengthUntyped()
+        private IList<object> ReadVarList()
         {
-            throw new NotImplementedException();
+            reader.ReadByte();
+            var type = ReadTypeName();
+            return ReadListCore(type: type);
         }
 
-        private List<object> ReadFixListWithLength()
+        private IList<object> ReadFixList()
         {
-            var tag = reader.ReadByte();
-            var length = tag - 0x70;
-            var list = new List<object>(length);
-
-            for (var i = 0; i < length; ++i) {
-                list.Add(ReadValue());
-            }
-            objectRefs.Add(list);
-            return list;
+            reader.ReadByte();
+            var type = ReadTypeName();
+            var length = ReadInteger();
+            return ReadListCore(length, type);
         }
 
-        private object ReadObjectDirect()
+        private IList<object> ReadVarListUntyped()
         {
-            throw new NotImplementedException();
+            reader.ReadByte();
+            return ReadListCore();
         }
 
-        private List<object> ReadFixListUntyped()
+        private IList<object> ReadFixListUntyped()
         {
             reader.ReadByte();
             var length = ReadInteger();
-            var list = new List<object>(length);
-            for (var i = 0; i < length; ++i) {
-                list.Add(ReadValue());
-            }
+            return ReadListCore(length);
+        }
+
+        private IList<object> ReadCompactFixList()
+        {
+            var tag = reader.ReadByte();
+            var length = tag - 0x70;
+            var type = ReadTypeName();
+            return ReadListCore(length, type);
+        }
+
+        private IList<object> ReadCompactFixListUntyped()
+        {
+            var tag = reader.ReadByte();
+            var length = tag - 0x70;
+            return ReadListCore(length);
+        }
+
+        private IList<object> ReadListCore(int? length = null, string type = null)
+        {
+            var list = GetListIntance(type, length);
+
             objectRefs.Add(list);
+
+            if (length.HasValue) {
+                PopulateFixLengthList(list, length.Value);
+            } else {
+                PopulateVarList(list);
+            }
             return list;
         }
 
-        private List<object> ReadVarListUntyped()
+        private IList<object> GetListIntance(string type, int? length = null)
         {
-            reader.ReadByte();
-            var list = new List<object>();
+            IList<object> list;
 
+            if (length.HasValue) {
+                if (!listTypeResolver.Value.TryGetListInstance(type, length.Value, out list)) {
+                    list = new List<object>(length.Value);
+                }
+            } else {
+                if (!listTypeResolver.Value.TryGetListInstance(type, out list)) {
+                    list = new List<object>();
+                }
+            }
+
+            return list;
+        }
+
+        private void PopulateFixLengthList(IList<object> list, int length)
+        {
+            for (var i = 0; i < length; ++i) {
+                list.Add(ReadValue());
+            }
+        }
+
+        private void PopulateVarList(IList<object> list)
+        {
             while (true) {
                 var tag = reader.Peek();
                 if (!tag.HasValue) {
@@ -237,19 +304,6 @@ namespace Hessian
                 }
                 list.Add(ReadValue());
             }
-
-            objectRefs.Add(list);
-            return list;
-        }
-
-        private IList<object> ReadFixList()
-        {
-            throw new NotImplementedException();
-        }
-
-        private IList<object> ReadVarList()
-        {
-            throw new NotImplementedException();
         }
 
         #endregion
@@ -465,14 +519,13 @@ namespace Hessian
                 throw new UnexpectedTagException(tag, "classdef");
             }
             var name = ReadString();
-            var classRef = classDefs.Count;
             var fieldCount = ReadInteger();
             var fields = new string[fieldCount];
             for (var i = 0; i < fields.Length; ++i) {
                 fields[i] = ReadString();
             }
 
-            var classDef = new ClassDef(classRef, name, fields);
+            var classDef = new ClassDef(name, fields);
             
             classDefs.Add(classDef);
 
@@ -535,7 +588,7 @@ namespace Hessian
             // Doubles representing integral values between -128.0 and 127.0 are
             // encoded as single bytes.  Java bytes are signed, .NET bytes aren't,
             // so we have to cast it first.
-            var tag = reader.ReadByte();
+            reader.ReadByte();
             return (sbyte) reader.ReadByte();
         }
 
@@ -543,7 +596,7 @@ namespace Hessian
         {
             // Doubles representing integral values between -32768.0 and 32767.0 are
             // encoded as two-byte integers.
-            var tag = reader.ReadByte();
+            reader.ReadByte();
             return reader.ReadShort();
         }
 
@@ -570,11 +623,6 @@ namespace Hessian
             }
 
             throw new UnexpectedTagException(tag, "boolean");
-        }
-
-        public Dictionary<object, object> ReadMap()
-        {
-            throw new NotImplementedException();
         }
 
         #region Date
@@ -683,20 +731,125 @@ namespace Hessian
 
         #endregion Long
 
-        public Dictionary<object, object> ReadTypedMap()
+        #region Dictionary/Map
+
+        public IDictionary<object, object> ReadMap()
         {
-            throw new NotImplementedException();
+            var tag = reader.Peek();
+
+            if (!tag.HasValue) {
+                throw new EndOfStreamException();
+            }
+
+            if (tag == 'H') {
+                return ReadUntypedMap();
+            }
+
+            if (tag == 'M') {
+                return ReadTypedMap();
+            }
+
+            throw new UnexpectedTagException(tag.Value, "map");
         }
+
+        private IDictionary<object, object> ReadUntypedMap()
+        {
+            reader.ReadByte();
+            return ReadMapCore();
+        }
+
+        private IDictionary<object, object> ReadTypedMap()
+        {
+            reader.ReadByte();
+            var typeName = ReadTypeName();
+            return ReadMapCore(typeName);
+        }
+
+        private IDictionary<object, object> ReadMapCore(string type = null)
+        {
+            IDictionary<object, object> dictionary;
+            if (type == null || !dictTypeResolver.Value.TryGetInstance("", out dictionary)) {
+                dictionary = new Dictionary<object, object>();
+            }
+
+            objectRefs.Add(dictionary);
+
+            while (true) {
+                var tag = reader.Peek();
+
+                if (!tag.HasValue) {
+                    throw new EndOfStreamException();
+                }
+                if (tag == 'Z') {
+                    break;
+                }
+
+                var key = ReadValue();
+                var value = ReadValue();
+                dictionary.Add(key, value);
+            }
+
+            return dictionary;
+        }
+
+        #endregion
+
+        #region Object
+
+        public object ReadObject()
+        {
+            var tag = reader.Peek();
+
+            if (!tag.HasValue) {
+                throw new EndOfStreamException();
+            }
+
+            if (tag == 'O') {
+                return ReadFullObject();
+            }
+
+            if (tag >= 0x60 && tag < 0x70) {
+                return ReadObjectDirect();
+            }
+
+            throw new UnexpectedTagException(tag.Value, "object");
+        }
+
+        private object ReadFullObject()
+        {
+            reader.ReadByte();
+            var classDefId = ReadInteger();
+            var classDef = classDefs.Get(classDefId);
+            return ReadObjectCore(classDef);
+        }
+
+        private object ReadObjectDirect()
+        {
+            var classDefId = reader.ReadByte() - 0x60;
+            var classDef = classDefs.Get(classDefId);
+            return ReadObjectCore(classDef);
+        }
+
+        private object ReadObjectCore(ClassDef classDef)
+        {
+            // XXX: This needs a better implementation - maybe, you know, constructing
+            //      the requested type?
+            var builder = HessianObject.Builder.New(classDef.Name);
+            objectRefs.Add(builder.Object);
+
+            for (var i = 0; i < classDef.Fields.Length; ++i) {
+                builder.Add(classDef.Fields[i], ReadValue());
+            }
+
+            return builder.Create();
+        }
+
+        #endregion
 
         public object ReadNull()
         {
             reader.ReadByte();
             return null;
-        }
-
-        public object ReadObject()
-        {
-            throw new NotImplementedException();
         }
 
         public object ReadRef()
@@ -708,11 +861,7 @@ namespace Hessian
             if (tag != 0x51) {
                 throw new UnexpectedTagException(tag.Value, "ref");
             }
-            var refid = ReadInteger();
-            if (refid < 0 || refid >= objectRefs.Count) {
-                throw new HessianException("Invalid ref ID: " + refid);
-            }
-            return objectRefs[refid];
+            return objectRefs.Get(ReadInteger());
         }
 
         private static int IntFromBytes(byte[] buffer, int offset)

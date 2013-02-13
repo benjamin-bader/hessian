@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DeserializerTests.cs" />
+    <Compile Include="ListTypeResolverTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ValueReaderTests.cs" />
   </ItemGroup>

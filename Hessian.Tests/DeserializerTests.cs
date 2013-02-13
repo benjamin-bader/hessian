@@ -15,6 +15,23 @@ namespace Hessian.Tests
         // A short string is a string of 0-31 characters, encoded as (length) utf-8
 
         [Test]
+        public void ReadValue_AccountsForAllByteValues()
+        {
+            for (var i = 0; i <= byte.MaxValue; ++i) {
+                var data = new byte[] {(byte) i};
+                var stream = new MemoryStream(data);
+                var ds = new Deserializer(stream);
+
+                try {
+                    ds.ReadValue();
+                }
+                catch (Exception ex) {
+                    Assert.IsFalse(ex.Message.StartsWith("WTF"), ex.Message);
+                }
+            }
+        }
+
+        [Test]
         public void ReadString_ReadsCompactEmptyString()
         {
             var data = new byte[] { 0x00 };
