@@ -16,6 +16,7 @@ namespace Hessian
 
         public ListTypeResolver()
         {
+            constructors.Add("System.Collections.ArrayList", empty_list_ctor);
             constructors.Add("System.Collections.List", empty_list_ctor);
             constructors.Add("System.Collections.IList", empty_list_ctor);
             constructors.Add("System.Collections.Generic.List`1", empty_list_ctor);

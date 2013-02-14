@@ -37,7 +37,7 @@ namespace Hessian
             return true;
         }
 
-        private IDictionary<object, object> DefaultCtor()
+        private static IDictionary<object, object> DefaultCtor()
         {
             return new Dictionary<object, object>();
         }

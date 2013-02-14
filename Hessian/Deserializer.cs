@@ -147,7 +147,7 @@ namespace Hessian
 
                 case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67:
                 case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F:
-                    return ReadObjectDirect();
+                    return ReadObjectCompact();
 
                 case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
                     return ReadCompactFixList();
@@ -805,17 +805,17 @@ namespace Hessian
             }
 
             if (tag == 'O') {
-                return ReadFullObject();
+                return ReadObjectFull();
             }
 
             if (tag >= 0x60 && tag < 0x70) {
-                return ReadObjectDirect();
+                return ReadObjectCompact();
             }
 
             throw new UnexpectedTagException(tag.Value, "object");
         }
 
-        private object ReadFullObject()
+        private object ReadObjectFull()
         {
             reader.ReadByte();
             var classDefId = ReadInteger();
@@ -823,7 +823,7 @@ namespace Hessian
             return ReadObjectCore(classDef);
         }
 
-        private object ReadObjectDirect()
+        private object ReadObjectCompact()
         {
             var classDefId = reader.ReadByte() - 0x60;
             var classDef = classDefs.Get(classDefId);
