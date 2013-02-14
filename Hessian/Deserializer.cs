@@ -34,7 +34,7 @@ namespace Hessian
             var tag = reader.Peek ();
 
             if (!tag.HasValue) {
-                throw new EndOfStreamException ();
+                throw new EndOfStreamException();
             }
 
             switch (tag.Value) {
@@ -196,6 +196,8 @@ namespace Hessian
                 throw new EndOfStreamException();
             }
 
+            // A type name is either a string, or an integer reference to a
+            // string already read and stored in the type-name ref map.
             if ((tag >= 0x00 && tag < 0x20)
                 || (tag >= 0x30 && tag < 0x34)
                 || tag == 0x52
@@ -472,7 +474,7 @@ namespace Hessian
                 return ReadIntegerThreeBytes();
             }
 
-            throw new InvalidDataException();
+            throw new UnexpectedTagException(tag.Value, "integer");
         }
 
         private int ReadIntegerFull()
@@ -686,6 +688,10 @@ namespace Hessian
                 return ReadLongTwoBytes();
             }
 
+            if (tag >= 0x38 && tag <= 0x3F) {
+                return ReadLongThreeBytes();
+            }
+
             if (tag == 0x59) {
                 return ReadLongFourBytes();
             }
@@ -837,8 +843,8 @@ namespace Hessian
             var builder = HessianObject.Builder.New(classDef.Name);
             objectRefs.Add(builder.Object);
 
-            for (var i = 0; i < classDef.Fields.Length; ++i) {
-                builder.Add(classDef.Fields[i], ReadValue());
+            foreach (var field in classDef.Fields) {
+                builder.Add(field, ReadValue());
             }
 
             return builder.Create();

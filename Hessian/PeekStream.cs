@@ -79,21 +79,13 @@ namespace Hessian
 
         public override int Read (byte[] buffer, int offset, int count)
         {
-            if (buffer == null) {
-                throw new ArgumentNullException ();
-            }
-
-            if (offset < 0 || offset >= buffer.Length) {
-                throw new ArgumentOutOfRangeException ("offset", offset, "Offset outside the bounds of the given buffer."); 
-            }
-
-            if (count < 0) {
-                throw new ArgumentOutOfRangeException ("count", count, "Count cannot be less than zero.");
-            }
-
-            if (offset + count >= buffer.Length) {
-                throw new ArgumentException ("Buffer not big enough to contain the requested data at the given offset.");
-            }
+            Conditions.CheckNotNull(buffer, "buffer");
+            Conditions.CheckGreaterOrEqual(offset, 0, "offset");
+            Conditions.CheckLess(offset, buffer.Length, "offset");
+            Conditions.CheckGreaterOrEqual(count, 0, "count");
+            Conditions.CheckArgument(
+                offset + count < buffer.Length,
+                "Buffer is not big enough to contain the requested amount of data at the given offset.");
 
             if (count == 0) {
                 return 0;

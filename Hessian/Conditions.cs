@@ -74,5 +74,41 @@ namespace Hessian
 
             throw new ArgumentOutOfRangeException(name);
         }
+
+        public static int CheckGreater(int value, int bounds, string name)
+        {
+            if (value > bounds) {
+                return value;
+            }
+
+            throw new ArgumentOutOfRangeException(name);
+        }
+
+        public static int CheckLess(int value, int bounds, string name)
+        {
+            if (value < bounds) {
+                return value;
+            }
+
+            throw new ArgumentOutOfRangeException(name);
+        }
+
+        public static int CheckGreaterOrEqual(int value, int bounds, string name)
+        {
+            if (value >= bounds) {
+                return value;
+            }
+
+            throw new ArgumentOutOfRangeException(name);
+        }
+
+        public static int CheckLessOrEqual(int value, int bounds, string name)
+        {
+            if (value <= bounds) {
+                return value;
+            }
+
+            throw new ArgumentOutOfRangeException(name);
+        }
     }
 }
