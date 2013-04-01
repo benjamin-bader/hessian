@@ -11,6 +11,7 @@ namespace Hessian.Collections
         {
             get { return Delegate.Keys; }
         }
+
         public virtual ICollection<TValue> Values
         {
             get { return Delegate.Values; }
@@ -28,7 +29,7 @@ namespace Hessian.Collections
 
         public virtual void Add(KeyValuePair<TKey, TValue> item)
         {
-            ((ICollection<KeyValuePair<TKey, TValue>>) Delegate).Add(item);
+            Delegate.Add(item);
         }
 
         public virtual void Clear()
@@ -38,17 +39,17 @@ namespace Hessian.Collections
 
         public virtual bool Contains(KeyValuePair<TKey, TValue> item)
         {
-            return ((ICollection<KeyValuePair<TKey, TValue>>) Delegate).Contains(item);
+            return Delegate.Contains(item);
         }
 
         public virtual void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
-            ((ICollection<KeyValuePair<TKey, TValue>>) Delegate).CopyTo(array, arrayIndex);
+            Delegate.CopyTo(array, arrayIndex);
         }
 
         public virtual bool Remove(KeyValuePair<TKey, TValue> item)
         {
-            return ((ICollection<KeyValuePair<TKey, TValue>>) Delegate).Remove(item);
+            return Delegate.Remove(item);
         }
 
         public virtual int Count

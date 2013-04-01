@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ExpectBetter;
 using NUnit.Framework;
 
 namespace Hessian.Tests
@@ -54,10 +55,9 @@ namespace Hessian.Tests
             stream.Write(encoded, 0, encoded.Length);
             stream.Position = 0;
             var ds = new Deserializer(stream);
+            var deserializedString = ds.ReadString();
 
-            var str = ds.ReadString();
-
-            Assert.AreEqual(ramayana, str);
+            Expect.The(deserializedString).ToEqual(ramayana);
         }
 
         // CLASS DEFS

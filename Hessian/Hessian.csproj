@@ -54,6 +54,9 @@
     <Compile Include="ListTypeResolver.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="PeekStream.cs" />
+    <Compile Include="Platform\BigEndianBitConverter.cs" />
+    <Compile Include="Platform\EndianBitConverter.cs" />
+    <Compile Include="Platform\LittleEndianBitConverter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Collections\TwoWayDictionaryRefMap.cs" />
     <Compile Include="StringBuilderExtensions.cs" />

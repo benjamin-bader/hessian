@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+
 using Hessian.Collections;
+using Hessian.Platform;
 
 namespace Hessian
 {
@@ -14,6 +16,8 @@ namespace Hessian
         private readonly IRefMap<string> typeNameRefs; 
         private readonly Lazy<ListTypeResolver> listTypeResolver = new Lazy<ListTypeResolver>();
         private readonly Lazy<DictionaryTypeResolver> dictTypeResolver = new Lazy<DictionaryTypeResolver>(); 
+
+        private static readonly EndianBitConverter BitConverter = new BigEndianBitConverter();
 
         public Deserializer (Stream stream)
         {
@@ -573,9 +577,6 @@ namespace Hessian
         {
             var data = new byte[9]; // 9 bytes: tag + IEEE 8-byte double
             reader.Read(data, data.Length);
-            if (BitConverter.IsLittleEndian) {
-                Array.Reverse(data, 1, 8);  // .NET is little-endian, network order is big-endian
-            }
             return BitConverter.ToDouble(data, 1);
         }
 
@@ -607,9 +608,6 @@ namespace Hessian
             // Doubles that can be represented as singles are thusly encoded.
             var data = new byte[5];
             reader.Read(data, data.Length);
-            if (BitConverter.IsLittleEndian) {
-                Array.Reverse(data, 1, 4); // .NET is little-endian, network order is big-endian.
-            }
             return BitConverter.ToSingle(data, 0);
         }
 
