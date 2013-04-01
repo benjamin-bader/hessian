@@ -1,6 +1,10 @@
 bin/
+_ReSharper*/
 _ReSharper/
 *.user
 obj/
 *.suo
 .userprefs
+
+packages/
+packages.config
