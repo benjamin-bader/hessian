@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+
+using ExpectBetter;
+
 using NUnit.Framework;
 
 namespace Hessian.Tests
@@ -20,8 +23,9 @@ namespace Hessian.Tests
                                 };
             foreach (var name in typeNames) {
                 IList<object> list;
-                Assert.IsTrue(resolver.TryGetListInstance(name, out list));
-                Assert.NotNull(list);
+                var returnCode = resolver.TryGetListInstance(name, out list);
+                Expect.The(returnCode).ToBeTrue();
+                Expect.The(list).Not.ToBeNull();
             }
         }
 
